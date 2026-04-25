@@ -10,6 +10,8 @@
 
 #include "avrcp.h"
 
+extern void led_connected(bool connected);
+
 // from btstack_audio_pico.c
 const btstack_audio_sink_t * btstack_audio_pico_sink_get_instance(void);
 
@@ -262,7 +264,7 @@ static void event_handler(uint8_t event, uint8_t *packet) {
             // _cid = a2dp_subevent_stream_established_get_a2dp_cid(packet);
             _seid = a2dp_subevent_stream_established_get_local_seid(packet);
             _stream_state = STREAM_STATE_OPEN;
-            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
+            led_connected(true);   // stop blink, LED steady ON
             gpio_put(CONN_PIN, 1);
 
             // printf("A2DP  Sink      : Streaming connection is established, address %s, cid 0x%02x, local seid %d\n",
@@ -290,7 +292,7 @@ static void event_handler(uint8_t event, uint8_t *packet) {
             // printf("A2DP  Sink      : Stream released\n");
             _stream_state = STREAM_STATE_CLOSED;
             media_processing_close();
-            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, false);
+            led_connected(false);  // LED off before reboot
             gpio_put(CONN_PIN, 0);
             watchdog_enable(100, true);  // reboot in 0.1s, since reconnect is buggy
             break;

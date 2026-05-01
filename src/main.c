@@ -4,6 +4,9 @@
 
 #include "bt.h"
 #include <btstack_run_loop.h>
+#include <btstack_run_loop.h>
+#include <btstack_run_loop.h>
+#include <btstack_run_loop.h>
 
 
 // Unrecoverable error happened. Reboot by setting watchdog.
@@ -31,9 +34,32 @@ void fatal() {
 }
 
 
+// --- LED state machine ---
+static btstack_timer_source_t _blink_timer;
+static bool _led_state  = false;
+static bool _connected  = false;
+
+static void blink_handler(btstack_timer_source_t *ts) {
+    if (_connected) return;          // stop blinking once connected
+    _led_state = !_led_state;
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, _led_state);
+    btstack_run_loop_set_timer(ts, 250);  // toggle every 250ms
+    btstack_run_loop_add_timer(ts);
+}
+
+// Called from a2dp.c on connect / disconnect
+void led_connected(bool connected) {
+    _connected = connected;
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, connected);
+}
+
 void on_bt_up( void *arg ) {
     printf("Bluetooth stack is up\n");
-    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, false);
+    // Start blinking to show we are in pairing mode
+    _connected = false;
+    btstack_run_loop_set_timer_handler(&_blink_timer, blink_handler);
+    btstack_run_loop_set_timer(&_blink_timer, 200);
+    btstack_run_loop_add_timer(&_blink_timer);
 }
 
 
